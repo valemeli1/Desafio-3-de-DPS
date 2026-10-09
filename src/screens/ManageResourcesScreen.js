@@ -5,6 +5,7 @@ import React, {
 
 import {
   Alert,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -65,57 +66,91 @@ export default function ManageResourcesScreen({
       cargar();
     }, [])
   );
+
 const handleDelete = (resource) => {
-  console.log("BOTÓN ELIMINAR PRESIONADO");
-  console.log("RECURSO:", resource);
-  console.log("ID:", resource.id);
+  console.log("RECURSO SELECCIONADO:", resource);
+  console.log("ID DEL RECURSO:", resource?.id);
 
-  Alert.alert(
-    "Eliminar recurso",
-    `¿Seguro que deseas eliminar "${resource.titulo}"?`,
-    [
-      {
-        text: "Cancelar",
-        style: "cancel",
-      },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          console.log("CONFIRMÓ ELIMINAR");
-
-          try {
-            await deleteRecurso(resource.id);
-
-            console.log("DELETE TERMINADO CORRECTAMENTE");
-
-            setRecursos((actuales) =>
-              actuales.filter(
-                (item) =>
-                  String(item.id) !== String(resource.id)
-              )
-            );
-
-            Alert.alert(
-              "Eliminado",
-              "El recurso fue eliminado correctamente."
-            );
-          } catch (error) {
-            console.log("ERROR EN HANDLE DELETE:", error);
-
-            Alert.alert(
-              "Error",
-              error.response?.data?.message ||
-                "No se pudo eliminar el recurso."
-            );
-          }
-        },
-      },
-    ]
-  
-  
+  if (
+    resource?.id === undefined ||
+    resource?.id === null ||
+    String(resource.id).trim() === ""
+  ) {
+    Alert.alert(
+      "No se puede eliminar",
+      "Este recurso no tiene un ID válido en la API."
     );
+    console.error("No se envió DELETE porque falta el ID.");
+    return;
+  }
+
+  const ejecutarEliminacion = async () => {
+    console.log("INICIANDO DELETE:", resource.id);
+
+    try {
+      await deleteRecurso(resource.id);
+
+      console.log("DELETE EXITOSO:", resource.id);
+
+      setRecursos((actuales) =>
+        actuales.filter(
+          (item) => String(item.id) !== String(resource.id)
+        )
+      );
+
+      if (Platform.OS === "web") {
+        window.alert("El recurso se eliminó correctamente.");
+      } else {
+        Alert.alert("Éxito", "El recurso se eliminó correctamente.");
+      }
+    } catch (error) {
+      console.error(
+        "ERROR AL ELIMINAR:",
+        error.response?.status,
+        error.response?.data || error.message
+      );
+
+      if (Platform.OS === "web") {
+        window.alert(
+          `No se pudo eliminar el recurso. ${
+            error.response?.status || error.message
+          }`
+        );
+      } else {
+        Alert.alert(
+          "Error",
+          `No se pudo eliminar el recurso. ${
+            error.response?.status || error.message
+          }`
+        );
+      }
+    }
   };
+
+  if (Platform.OS === "web") {
+    const confirmar = window.confirm(
+      `¿Seguro que deseas eliminar "${resource.titulo}"?`
+    );
+
+    if (confirmar) {
+      ejecutarEliminacion();
+    }
+  } else {
+    Alert.alert(
+      "Eliminar recurso",
+      `¿Seguro que deseas eliminar "${resource.titulo}"?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: ejecutarEliminacion,
+        },
+      ]
+    );
+  }
+};
+
 
   if (loading) {
     return (

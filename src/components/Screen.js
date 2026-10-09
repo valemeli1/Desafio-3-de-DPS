@@ -1,36 +1,32 @@
+
 import React from "react";
 import {
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
-
-import { COLORS } from "../theme";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Screen({
   children,
   scroll = true,
   style,
 }) {
-  if (scroll) {
-    return (
-      <SafeAreaView style={styles.safe}>
+  return (
+    <SafeAreaView style={styles.safe}>
+      {scroll ? (
         <ScrollView
-          contentContainerStyle={[styles.container, style]}
+          contentContainerStyle={[styles.content, style]}
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {children}
         </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.safe}>
-      <View style={[styles.container, style]}>
-        {children}
-      </View>
+      ) : (
+        <View style={[styles.content, style]}>
+          {children}
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -38,11 +34,10 @@ export default function Screen({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#100D1A",
   },
-
-  container: {
-    padding: 16,
+  content: {
     flexGrow: 1,
+    paddingVertical: 16,
   },
 });

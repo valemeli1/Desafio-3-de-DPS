@@ -39,26 +39,15 @@ export const updateRecurso = async (id, recurso) => {
   return response.data;
 };
 
+
 export const deleteRecurso = async (id) => {
-  console.log("DELETE INICIADO");
-  console.log("ID:", id);
-  console.log("URL:", `${BASE_URL}/recursos/${id}`);
+  console.log("URL DE ELIMINACIÓN:", `${BASE_URL}/recursos/${id}`);
 
-  try {
-    const response = await api.delete(`/recursos/${id}`);
+  const response = await api.delete(`/recursos/${id}`);
 
-    console.log("DELETE STATUS:", response.status);
-    console.log("DELETE DATA:", response.data);
+  console.log("RESPUESTA DELETE:", response.status);
 
-    return response.data;
-  } catch (error) {
-    console.log("DELETE ERROR:", error.message);
-    console.log("DELETE ERROR RESPONSE:", error.response?.data);
-    console.log("DELETE ERROR STATUS:", error.response?.status);
-    console.log("DELETE ERROR URL:", error.config?.url);
-
-    throw error;
-  }
+  return response.data;
 };
 
 // ======================================================
