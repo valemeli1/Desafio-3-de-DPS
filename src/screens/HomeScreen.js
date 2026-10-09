@@ -131,26 +131,19 @@ export default function HomeScreen({
           No existen recursos todavía.
         </Text>
       ) : (
-        recursos.map((resource) => (
-          <ResourceCard
-            key={resource.id}
-            resource={resource}
-            isFavorite={favoritos.includes(
-              String(resource.id)
-            )}
-            onFavorite={() =>
-              toggleFavorite(resource.id)
-            }
-            onPress={() =>
-              navigation.navigate(
-                "DetalleRecurso",
-                {
-                  resource,
-                }
-              )
-            }
-          />
-        ))
+        
+recursos.map((resource) => (
+ <ResourceCard
+  key={String(resource.id)}
+  resource={resource}
+  favorito={favoritos.includes(String(resource.id))}
+  onFavorite={() => toggleFavorite(resource.id)}
+  onPress={() =>
+    navigation.navigate("DetalleRecurso", { resource })
+  }
+/>
+))
+
       )}
     </Screen>
   );

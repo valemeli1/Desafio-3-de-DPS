@@ -1,6 +1,5 @@
 
 import React from "react";
-
 import {
   Image,
   StyleSheet,
@@ -17,7 +16,6 @@ import {
 import Stars from "./Stars";
 
 const COLORS = {
-  background: "#110D1B",
   surface: "#1C1729",
   border: "#352847",
   primary: "#A78BFA",
@@ -33,30 +31,27 @@ export default function ResourceCard({
   onPress,
   onFavorite,
   favorito = false,
+  isFavorite,
   onRate,
   onEdit,
   onDelete,
   docente = false,
 }) {
-  // Acepta ambos nombres para mantener compatibilidad.
   const item = recurso || resource || {};
-
-  const titulo = item.titulo || "Sin título";
-  const descripcion =
-    item.descripcion || "Sin descripción disponible.";
-  const tipo = item.tipo || "Recurso educativo";
-
-  const promedio = Number(item.promedio);
-  const rating = Number.isFinite(promedio) ? promedio : 0;
 
   const imagen =
     typeof item.imagen === "string" &&
-    item.imagen.trim().startsWith("https://")
+    /^https?:\/\//i.test(item.imagen.trim())
       ? item.imagen.trim()
-      : typeof item.imagen === "string" &&
-          item.imagen.trim().startsWith("http://")
-        ? item.imagen.trim()
-        : null;
+      : null;
+
+  const promedio = Number(item.promedio);
+  const rating = Number.isFinite(promedio)
+    ? Math.max(0, Math.min(5, promedio))
+    : 0;
+
+  const esFavorito =
+    isFavorite !== undefined ? isFavorite : favorito;
 
   return (
     <Card style={styles.card} onPress={onPress}>
@@ -66,12 +61,12 @@ export default function ResourceCard({
           style={styles.image}
           resizeMode="cover"
           onError={() =>
-            console.log("No se pudo cargar la imagen:", imagen)
+            console.log("Error al cargar imagen:", imagen)
           }
         />
       ) : (
-        <View style={styles.imagePlaceholder}>
-          <Text variant="headlineMedium">💻</Text>
+        <View style={styles.placeholder}>
+          <Text style={styles.placeholderIcon}>💻</Text>
           <Text style={styles.placeholderText}>
             Imagen no disponible
           </Text>
@@ -85,25 +80,22 @@ export default function ResourceCard({
             style={styles.chip}
             textStyle={styles.chipText}
           >
-            {tipo}
+            {item.tipo || "Recurso educativo"}
           </Chip>
 
-          {!docente && onFavorite && (
+          {!docente && (
             <IconButton
-              icon={favorito ? "heart" : "heart-outline"}
-              iconColor={favorito ? "#F472B6" : COLORS.primary}
+              icon={esFavorito ? "heart" : "heart-outline"}
+              iconColor={esFavorito ? "#F472B6" : COLORS.primary}
               onPress={onFavorite}
-              accessibilityLabel={
-                favorito
-                  ? "Quitar de favoritos"
-                  : "Agregar a favoritos"
-              }
+              disabled={!onFavorite}
+              accessibilityLabel="Cambiar favorito"
             />
           )}
         </View>
 
         <Text variant="titleMedium" style={styles.title}>
-          {titulo}
+          {item.titulo || "Sin título"}
         </Text>
 
         <Text
@@ -111,58 +103,53 @@ export default function ResourceCard({
           style={styles.description}
           numberOfLines={3}
         >
-          {descripcion}
+          {item.descripcion || "Sin descripción disponible."}
         </Text>
 
-        <View style={styles.ratingRow}>
-          <Text style={styles.rating}>
-            ★ {rating.toFixed(1)}
+        <View style={styles.metadata}>
+          <Text style={styles.ratingText}>
+            ★ {rating.toFixed(1)} / 5
           </Text>
 
-          {item.fecha && (
-            <Text style={styles.date}>
-              {String(item.fecha).slice(0, 10)}
-            </Text>
-          )}
+          <Text style={styles.date}>
+            {item.fecha &&
+            !Number.isNaN(Date.parse(item.fecha))
+              ? new Date(item.fecha).toLocaleDateString()
+              : "Fecha no disponible"}
+          </Text>
         </View>
 
-        {item.enlace && (
-          <Text
-            style={styles.link}
-            numberOfLines={1}
-          >
+        {item.enlace ? (
+          <Text style={styles.link} numberOfLines={1}>
             {item.enlace}
           </Text>
-        )}
-
-        {onRate && !docente && (
-          <View style={styles.rateContainer}>
-            <Stars
-              rating={rating}
-              onRate={onRate}
-            />
-          </View>
-        )}
+        ) : null}
+{onRate && !docente && (
+  <View style={styles.rateContainer}>
+    <Stars
+      value={Number(item.miCalificacion || 0)}
+      onChange={onRate}
+    />
+  </View>
+)}
 
         {docente && (
           <View style={styles.actions}>
-            {onEdit && (
-              <IconButton
-                icon="pencil-outline"
-                iconColor={COLORS.primary}
-                onPress={onEdit}
-                accessibilityLabel="Editar recurso"
-              />
-            )}
+            <IconButton
+              icon="pencil-outline"
+              iconColor={COLORS.primary}
+              onPress={onEdit}
+              disabled={!onEdit}
+              accessibilityLabel="Editar recurso"
+            />
 
-            {onDelete && (
-              <IconButton
-                icon="delete-outline"
-                iconColor={COLORS.danger}
-                onPress={onDelete}
-                accessibilityLabel="Eliminar recurso"
-              />
-            )}
+            <IconButton
+              icon="delete-outline"
+              iconColor={COLORS.danger}
+              onPress={onDelete}
+              disabled={!onDelete}
+              accessibilityLabel="Eliminar recurso"
+            />
           </View>
         )}
       </Card.Content>
@@ -180,83 +167,76 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-
   image: {
     width: "100%",
     height: 175,
     backgroundColor: "#302742",
   },
-
-  imagePlaceholder: {
+  placeholder: {
     height: 150,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     backgroundColor: "#302742",
   },
-
+  placeholderIcon: {
+    fontSize: 36,
+  },
   placeholderText: {
     color: COLORS.secondary,
   },
-
   content: {
     paddingTop: 12,
     paddingBottom: 12,
   },
-
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-
   chip: {
     backgroundColor: "#352451",
   },
-
   chipText: {
     color: "#DDD6FE",
   },
-
   title: {
     color: COLORS.text,
     fontWeight: "bold",
     marginTop: 8,
   },
-
   description: {
     color: COLORS.secondary,
     marginTop: 8,
     lineHeight: 21,
   },
-
-  ratingRow: {
+  metadata: {
     marginTop: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    flexWrap: "wrap",
   },
-
-  rating: {
+  ratingText: {
     color: COLORS.yellow,
     fontWeight: "bold",
   },
-
   date: {
     color: COLORS.secondary,
     fontSize: 12,
   },
-
   link: {
     color: COLORS.primary,
     marginTop: 8,
     fontSize: 12,
   },
-
-  rateContainer: {
-    marginTop: 8,
+  starsContainer: {
+    marginTop: 12,
+    gap: 6,
   },
-
+  rateLabel: {
+    color: COLORS.secondary,
+  },
   actions: {
     flexDirection: "row",
     justifyContent: "flex-end",

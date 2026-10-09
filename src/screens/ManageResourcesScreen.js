@@ -84,48 +84,56 @@ const handleDelete = (resource) => {
     return;
   }
 
-  const ejecutarEliminacion = async () => {
-    console.log("INICIANDO DELETE:", resource.id);
+  
+const ejecutarEliminacion = async () => {
+  const id = resource?.id;
 
-    try {
-      await deleteRecurso(resource.id);
+  if (id === undefined || id === null || String(id).trim() === "") {
+    Alert.alert(
+      "No se puede eliminar",
+      "El recurso no tiene un ID válido. Revisa el registro en MockAPI."
+    );
+    return;
+  }
 
-      console.log("DELETE EXITOSO:", resource.id);
+  try {
+    setDeletingId(String(id));
 
-      setRecursos((actuales) =>
-        actuales.filter(
-          (item) => String(item.id) !== String(resource.id)
-        )
-      );
+    console.log("Enviando DELETE para el ID:", id);
 
-      if (Platform.OS === "web") {
-        window.alert("El recurso se eliminó correctamente.");
-      } else {
-        Alert.alert("Éxito", "El recurso se eliminó correctamente.");
-      }
-    } catch (error) {
-      console.error(
-        "ERROR AL ELIMINAR:",
-        error.response?.status,
-        error.response?.data || error.message
-      );
+    await deleteRecurso(id);
 
-      if (Platform.OS === "web") {
-        window.alert(
-          `No se pudo eliminar el recurso. ${
-            error.response?.status || error.message
-          }`
-        );
-      } else {
-        Alert.alert(
-          "Error",
-          `No se pudo eliminar el recurso. ${
-            error.response?.status || error.message
-          }`
-        );
-      }
+    setRecursos((actuales) =>
+      actuales.filter(
+        (item) => String(item.id) !== String(id)
+      )
+    );
+
+    if (Platform.OS === "web") {
+      window.alert("Recurso eliminado correctamente.");
+    } else {
+      Alert.alert("Éxito", "Recurso eliminado correctamente.");
     }
-  };
+  } catch (error) {
+    console.error(
+      "ERROR DELETE:",
+      error.response?.status,
+      error.response?.data || error.message
+    );
+
+    if (Platform.OS === "web") {
+      window.alert(
+        `No se pudo eliminar: ${
+          error.response?.status || error.message
+        }`
+      );
+    } else {
+      Alert.alert("Error", "No se pudo eliminar el recurso.");
+    }
+  } finally {
+    setDeletingId(null);
+  }
+};
 
   if (Platform.OS === "web") {
     const confirmar = window.confirm(
