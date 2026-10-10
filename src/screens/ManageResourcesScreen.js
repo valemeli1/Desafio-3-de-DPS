@@ -1,8 +1,4 @@
-import React, {
-  useCallback,
-  useState,
-} from "react";
-
+import React, { useCallback, useState } from "react";
 import {
   Alert,
   Platform,
@@ -10,27 +6,15 @@ import {
   Text,
   View,
 } from "react-native";
-
-import {
-  ActivityIndicator,
-  Button,
-} from "react-native-paper";
-
+import { ActivityIndicator, Button } from "react-native-paper";
 import { useFocusEffect } from "@react-navigation/native";
 
-import {
-  deleteRecurso,
-  getRecursos,
-} from "../api";
-
+import { deleteRecurso, getRecursos } from "../api";
 import Screen from "../components/Screen";
 import ResourceCard from "../components/ResourceCard";
-
 import { COLORS } from "../theme";
 
-export default function ManageResourcesScreen({
-  navigation,
-}) {
+export default function ManageResourcesScreen({ navigation }) {
   const [recursos, setRecursos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
@@ -38,26 +22,21 @@ export default function ManageResourcesScreen({
   const cargar = async () => {
     try {
       setLoading(true);
-
       const data = await getRecursos();
-
-      console.log("RECURSOS RECIBIDOS:", data);
-
-      setRecursos(
-        Array.isArray(data) ? data : []
-      );
+      setRecursos(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.log(
-        "ERROR CARGANDO RECURSOS:",
-        error
-      );
-
-      Alert.alert(
-        "Error",
-        "No se pudieron cargar los recursos."
-      );
+      console.error("ERROR CARGANDO RECURSOS:", error);
+      mostrarMensaje("Error", "No se pudieron cargar los recursos.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const mostrarMensaje = (titulo, mensaje) => {
+    if (Platform.OS === "web") {
+      window.alert(`${titulo}: ${mensaje}`);
+    } else {
+      Alert.alert(titulo, mensaje);
     }
   };
 
@@ -67,106 +46,61 @@ export default function ManageResourcesScreen({
     }, [])
   );
 
-const handleDelete = (resource) => {
-  console.log("RECURSO SELECCIONADO:", resource);
-  console.log("ID DEL RECURSO:", resource?.id);
-
-  if (
-    resource?.id === undefined ||
-    resource?.id === null ||
-    String(resource.id).trim() === ""
-  ) {
-    Alert.alert(
-      "No se puede eliminar",
-      "Este recurso no tiene un ID válido en la API."
-    );
-    console.error("No se envió DELETE porque falta el ID.");
-    return;
-  }
-
-  
-const ejecutarEliminacion = async () => {
-  const id = resource?.id;
-
-  if (id === undefined || id === null || String(id).trim() === "") {
-    Alert.alert(
-      "No se puede eliminar",
-      "El recurso no tiene un ID válido. Revisa el registro en MockAPI."
-    );
-    return;
-  }
-
-  try {
-    setDeletingId(String(id));
-
-    console.log("Enviando DELETE para el ID:", id);
-
-    await deleteRecurso(id);
-
-    setRecursos((actuales) =>
-      actuales.filter(
-        (item) => String(item.id) !== String(id)
-      )
-    );
-
-    if (Platform.OS === "web") {
-      window.alert("Recurso eliminado correctamente.");
-    } else {
-      Alert.alert("Éxito", "Recurso eliminado correctamente.");
+  const ejecutarEliminacion = async (resource) => {
+    const id = resource?.id;
+    if (id === undefined || id === null || String(id).trim() === "") {
+      mostrarMensaje("No se puede eliminar", "El recurso no tiene un ID válido.");
+      return;
     }
-  } catch (error) {
-    console.error(
-      "ERROR DELETE:",
-      error.response?.status,
-      error.response?.data || error.message
-    );
 
-    if (Platform.OS === "web") {
-      window.alert(
-        `No se pudo eliminar: ${
-          error.response?.status || error.message
-        }`
+    try {
+      setDeletingId(String(id));
+      await deleteRecurso(id);
+
+      setRecursos((actuales) =>
+        actuales.filter((item) => String(item.id) !== String(id))
       );
-    } else {
-      Alert.alert("Error", "No se pudo eliminar el recurso.");
+
+      mostrarMensaje("Éxito", "El recurso se eliminó correctamente.");
+    } catch (error) {
+      console.error(
+        "ERROR DELETE:",
+        error.response?.status,
+        error.response?.data || error.message
+      );
+      mostrarMensaje(
+        "Error",
+        error.response?.status
+          ? `La API respondió con el estado ${error.response.status}.`
+          : "No se pudo conectar con MockAPI. Revisa tu conexión."
+      );
+    } finally {
+      setDeletingId(null);
     }
-  } finally {
-    setDeletingId(null);
-  }
-};
+  };
 
-  if (Platform.OS === "web") {
-    const confirmar = window.confirm(
-      `¿Seguro que deseas eliminar "${resource.titulo}"?`
-    );
+  const handleDelete = (resource) => {
+    const confirmar = async () => ejecutarEliminacion(resource);
+    const mensaje = `¿Seguro que deseas eliminar "${resource?.titulo || "este recurso"}"?`;
 
-    if (confirmar) {
-      ejecutarEliminacion();
+    if (Platform.OS === "web") {
+      if (window.confirm(mensaje)) {
+        confirmar();
+      }
+      return;
     }
-  } else {
-    Alert.alert(
-      "Eliminar recurso",
-      `¿Seguro que deseas eliminar "${resource.titulo}"?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: ejecutarEliminacion,
-        },
-      ]
-    );
-  }
-};
 
+    Alert.alert("Eliminar recurso", mensaje, [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Eliminar", style: "destructive", onPress: confirmar },
+    ]);
+  };
 
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>
-          Cargando recursos...
-        </Text>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Cargando recursos...</Text>
       </View>
     );
   }
@@ -174,23 +108,14 @@ const ejecutarEliminacion = async () => {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>
-          Gestionar recursos
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Crear, editar y eliminar recursos.
-        </Text>
+        <Text style={styles.title}>Gestionar recursos</Text>
+        <Text style={styles.subtitle}>Crear, editar y eliminar recursos.</Text>
       </View>
 
       <Button
         mode="contained"
         icon="plus"
-        onPress={() =>
-          navigation.navigate(
-            "FormularioRecurso"
-          )
-        }
+        onPress={() => navigation.navigate("FormularioRecurso")}
         style={styles.addButton}
       >
         Agregar recurso
@@ -198,39 +123,22 @@ const ejecutarEliminacion = async () => {
 
       {recursos.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>
-            No hay recursos
-          </Text>
-
-          <Text style={styles.emptyText}>
-            Actualmente no existen recursos registrados.
-          </Text>
+          <Text style={styles.emptyTitle}>No hay recursos</Text>
+          <Text style={styles.emptyText}>Actualmente no existen recursos registrados.</Text>
         </View>
       ) : (
         recursos.map((resource) => (
-          <View
-            key={String(resource.id)}
-            style={styles.resourceContainer}
-          >
-            <ResourceCard
-              resource={resource}
-            />
+          <View key={String(resource.id)} style={styles.resourceContainer}>
+            <ResourceCard resource={resource} />
 
             <View style={styles.actions}>
               <Button
                 mode="outlined"
                 icon="pencil"
                 onPress={() =>
-                  navigation.navigate(
-                    "FormularioRecurso",
-                    {
-                      resource,
-                    }
-                  )
+                  navigation.navigate("FormularioRecurso", { resource })
                 }
-                disabled={
-                  deletingId !== null
-                }
+                disabled={deletingId !== null}
               >
                 Editar
               </Button>
@@ -239,19 +147,11 @@ const ejecutarEliminacion = async () => {
                 mode="outlined"
                 icon="delete"
                 textColor={COLORS.danger}
-                loading={
-                  deletingId === resource.id
-                }
-                disabled={
-                  deletingId !== null
-                }
-                onPress={() =>
-                  handleDelete(resource)
-                }
+                loading={deletingId === String(resource.id)}
+                disabled={deletingId !== null}
+                onPress={() => handleDelete(resource)}
               >
-                {deletingId === resource.id
-                  ? "Eliminando..."
-                  : "Eliminar"}
+                {deletingId === String(resource.id) ? "Eliminando..." : "Eliminar"}
               </Button>
             </View>
           </View>
@@ -262,61 +162,20 @@ const ejecutarEliminacion = async () => {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    marginBottom: 10,
-  },
-
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: COLORS.text,
-  },
-
-  subtitle: {
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
-
-  addButton: {
-    marginVertical: 15,
-  },
-
-  resourceContainer: {
-    marginBottom: 5,
-  },
-
+  header: { marginBottom: 10 },
+  title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
+  subtitle: { color: COLORS.textSecondary, marginTop: 4 },
+  addButton: { marginVertical: 15 },
+  resourceContainer: { marginBottom: 5 },
   actions: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: -8,
     marginBottom: 20,
   },
-
-  loading: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  loadingText: {
-    marginTop: 10,
-    color: COLORS.textSecondary,
-  },
-
-  empty: {
-    padding: 30,
-    alignItems: "center",
-  },
-
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-
-  emptyText: {
-    marginTop: 8,
-    textAlign: "center",
-    color: COLORS.textSecondary,
-  },
+  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 10, color: COLORS.textSecondary },
+  empty: { padding: 30, alignItems: "center" },
+  emptyTitle: { fontSize: 20, fontWeight: "700", color: COLORS.text },
+  emptyText: { marginTop: 8, textAlign: "center", color: COLORS.textSecondary },
 });
