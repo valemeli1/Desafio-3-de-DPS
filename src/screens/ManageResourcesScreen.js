@@ -49,7 +49,7 @@ export default function ManageResourcesScreen({ navigation }) {
 
   const ejecutarEliminacion = async (resource) => {
     const id = resource?.id;
-    if (id === undefined || id === null || String(id).trim() === "") {
+    if (!hasApiResourceId(resource)) {
       mostrarMensaje("No se puede eliminar", "Este registro no tiene el campo id que exige MockAPI. Debes eliminarlo desde el panel de MockAPI y volver a crearlo para que se genere un ID.");
       return;
     }
