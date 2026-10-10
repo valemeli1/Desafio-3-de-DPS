@@ -13,6 +13,7 @@ import { deleteRecurso, getRecursos } from "../api";
 import Screen from "../components/Screen";
 import ResourceCard from "../components/ResourceCard";
 import { COLORS } from "../theme";
+import { hasApiResourceId } from "../utils/resourceIdentity";
 
 export default function ManageResourcesScreen({ navigation }) {
   const [recursos, setRecursos] = useState([]);
@@ -49,7 +50,7 @@ export default function ManageResourcesScreen({ navigation }) {
   const ejecutarEliminacion = async (resource) => {
     const id = resource?.id;
     if (id === undefined || id === null || String(id).trim() === "") {
-      mostrarMensaje("No se puede eliminar", "El recurso no tiene un ID válido.");
+      mostrarMensaje("No se puede eliminar", "Este registro no tiene el campo id que exige MockAPI. Debes eliminarlo desde el panel de MockAPI y volver a crearlo para que se genere un ID.");
       return;
     }
 
@@ -135,9 +136,16 @@ export default function ManageResourcesScreen({ navigation }) {
               <Button
                 mode="outlined"
                 icon="pencil"
-                onPress={() =>
-                  navigation.navigate("FormularioRecurso", { resource })
-                }
+                onPress={() => {
+                  if (!hasApiResourceId(resource)) {
+                    mostrarMensaje(
+                      "No se puede editar",
+                      "Este registro no tiene el campo id que exige MockAPI. Debes eliminarlo desde el panel de MockAPI y volver a crearlo para que se genere un ID."
+                    );
+                    return;
+                  }
+                  navigation.navigate("FormularioRecurso", { resource });
+                }}
                 disabled={deletingId !== null}
               >
                 Editar
