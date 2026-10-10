@@ -27,6 +27,7 @@ import { COLORS } from "../theme";
 
 import AsyncStorage from
   "@react-native-async-storage/async-storage";
+import { getResourceKey, cleanFavoriteKeys } from "../utils/resourceIdentity";
 
 export default function SearchScreen({
   navigation,
@@ -56,8 +57,10 @@ export default function SearchScreen({
           "favoritos"
         );
 
-      if (saved) {
-        setFavoritos(JSON.parse(saved));
+      const ids = cleanFavoriteKeys(saved ? JSON.parse(saved) : []);
+      setFavoritos(ids);
+      if (JSON.stringify(ids) !== JSON.stringify(saved ? JSON.parse(saved) : [])) {
+        await AsyncStorage.setItem("favoritos", JSON.stringify(ids));
       }
     } catch (error) {
       Alert.alert(
@@ -73,16 +76,19 @@ export default function SearchScreen({
     }, [])
   );
 
-  const toggleFavorite = async (id) => {
+  const toggleFavorite = async (resource) => {
+    const key = getResourceKey(resource);
+    if (!key) {
+      Alert.alert("Favorito", "Este recurso no tiene datos suficientes para identificarlo.");
+      return;
+    }
+
     try {
-      // Leer el último valor evita trabajar con una lista desactualizada.
       const saved = await AsyncStorage.getItem("favoritos");
-      const actuales = saved ? JSON.parse(saved) : [];
-      const ids = Array.isArray(actuales) ? actuales.map(String) : [];
-      const idTexto = String(id);
-      const updated = ids.includes(idTexto)
-        ? ids.filter((item) => item !== idTexto)
-        : [...ids, idTexto];
+      const ids = cleanFavoriteKeys(saved ? JSON.parse(saved) : []);
+      const updated = ids.includes(key)
+        ? ids.filter((item) => item !== key)
+        : [...ids, key];
 
       await AsyncStorage.setItem("favoritos", JSON.stringify(updated));
       setFavoritos(updated);
@@ -266,14 +272,10 @@ export default function SearchScreen({
 
       {filtrados.map((resource) => (
         <ResourceCard
-          key={resource.id}
+          key={getResourceKey(resource)}
           resource={resource}
-          isFavorite={favoritos.includes(
-            String(resource.id)
-          )}
-          onFavorite={() =>
-            toggleFavorite(resource.id)
-          }
+          isFavorite={favoritos.includes(getResourceKey(resource))}
+          onFavorite={() => toggleFavorite(resource)}
           onPress={() =>
             navigation.navigate(
               "DetalleRecurso",
