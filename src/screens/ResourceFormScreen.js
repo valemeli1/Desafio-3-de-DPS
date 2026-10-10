@@ -26,6 +26,7 @@ import {
 } from "../utils/validation";
 
 import { COLORS } from "../theme";
+import { hasApiResourceId } from "../utils/resourceIdentity";
 
 export default function ResourceFormScreen({
   route,
@@ -71,6 +72,14 @@ export default function ResourceFormScreen({
         errors.join("\n")
       );
 
+      return;
+    }
+
+    if (editing && !hasApiResourceId(resource)) {
+      Alert.alert(
+        "ID inválido",
+        "Este recurso no tiene un ID generado por MockAPI, por eso no se puede actualizar. Elimínalo desde el panel de MockAPI y vuelve a crearlo para que tenga un ID válido."
+      );
       return;
     }
 
