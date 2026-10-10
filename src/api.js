@@ -1,8 +1,5 @@
-import axios from "axios";
 
-// ======================================================
-// URL DE MOCKAPI
-// ======================================================
+import axios from "axios";
 
 const BASE_URL =
   "https://6ac6f032bea0e72cf5c94f44.mockapi.io/api/v1";
@@ -15,9 +12,24 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// ======================================================
-// RECURSOS
-// ======================================================
+// Comprueba que el recurso tenga un ID real de MockAPI.
+const validarId = (id) => {
+  if (
+    id === undefined ||
+    id === null ||
+    String(id).trim() === "" ||
+    String(id) === "undefined" ||
+    String(id) === "null"
+  ) {
+    throw new Error(
+      "El recurso no tiene un ID válido de MockAPI."
+    );
+  }
+
+  return String(id);
+};
+
+// ==================== RECURSOS ====================
 
 export const getRecursos = async () => {
   const response = await api.get("/recursos");
@@ -25,7 +37,8 @@ export const getRecursos = async () => {
 };
 
 export const getRecurso = async (id) => {
-  const response = await api.get(`/recursos/${id}`);
+  const idValido = validarId(id);
+  const response = await api.get(`/recursos/${idValido}`);
   return response.data;
 };
 
@@ -35,24 +48,23 @@ export const createRecurso = async (recurso) => {
 };
 
 export const updateRecurso = async (id, recurso) => {
-  const response = await api.put(`/recursos/${id}`, recurso);
+  const idValido = validarId(id);
+  const response = await api.put(
+    `/recursos/${idValido}`,
+    recurso
+  );
   return response.data;
 };
-
 
 export const deleteRecurso = async (id) => {
-  console.log("URL DE ELIMINACIÓN:", `${BASE_URL}/recursos/${id}`);
-
-  const response = await api.delete(`/recursos/${id}`);
-
-  console.log("RESPUESTA DELETE:", response.status);
-
+  const idValido = validarId(id);
+  const response = await api.delete(
+    `/recursos/${idValido}`
+  );
   return response.data;
 };
 
-// ======================================================
-// USUARIOS
-// ======================================================
+// ==================== USUARIOS ====================
 
 export const getUsuarios = async () => {
   const response = await api.get("/usuarios");
@@ -60,7 +72,8 @@ export const getUsuarios = async () => {
 };
 
 export const getUsuario = async (id) => {
-  const response = await api.get(`/usuarios/${id}`);
+  const idValido = validarId(id);
+  const response = await api.get(`/usuarios/${idValido}`);
   return response.data;
 };
 
@@ -69,9 +82,7 @@ export const createUsuario = async (usuario) => {
   return response.data;
 };
 
-// ======================================================
-// CALIFICACIONES
-// ======================================================
+// ==================== CALIFICACIONES ====================
 
 export const getCalificaciones = async () => {
   const response = await api.get("/calificaciones");
@@ -79,7 +90,10 @@ export const getCalificaciones = async () => {
 };
 
 export const getCalificacion = async (id) => {
-  const response = await api.get(`/calificaciones/${id}`);
+  const idValido = validarId(id);
+  const response = await api.get(
+    `/calificaciones/${idValido}`
+  );
   return response.data;
 };
 
@@ -88,7 +102,6 @@ export const createCalificacion = async (calificacion) => {
     "/calificaciones",
     calificacion
   );
-
   return response.data;
 };
 
@@ -96,19 +109,19 @@ export const updateCalificacion = async (
   id,
   calificacion
 ) => {
+  const idValido = validarId(id);
   const response = await api.put(
-    `/calificaciones/${id}`,
+    `/calificaciones/${idValido}`,
     calificacion
   );
-
   return response.data;
 };
 
 export const deleteCalificacion = async (id) => {
+  const idValido = validarId(id);
   const response = await api.delete(
-    `/calificaciones/${id}`
+    `/calificaciones/${idValido}`
   );
-
   return response.data;
 };
 
