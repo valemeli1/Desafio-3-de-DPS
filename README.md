@@ -1,56 +1,141 @@
-# Welcome to your Expo app 👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+#  RecursosIngenieria
 
-## Get started
+Aplicación móvil desarrollada con React Native y Expo para la gestión y consulta de recursos educativos relacionados con la ingeniería y la tecnología. Permite a estudiantes y docentes explorar materiales de aprendizaje, guardar favoritos y calificar recursos.
 
-1. Install dependencies
+Link del video: https://drive.google.com/file/d/1ambjwjfY8IYZ4NFsY4OwEOiBS55TAu_Q/view?usp=sharing 
 
-   ```bash
-   npm install
-   ```
+##  Objetivo del proyecto
 
-2. Start the app
+Facilitar el acceso a recursos educativos mediante una aplicación intuitiva, moderna y adaptable a diferentes dispositivos, promoviendo el aprendizaje y el intercambio de materiales académicos.
 
-   ```bash
-   npx expo start
-   ```
+##  Tecnologías utilizadas
 
-In the output, you'll find options to open the app in a
+| Tecnología | Uso |
+|---|---|
+| React Native | Desarrollo de la interfaz móvil |
+| Expo | Ejecución y desarrollo de la aplicación |
+| JavaScript | Lógica de la aplicación |
+| React Native Paper | Componentes de interfaz |
+| React Navigation | Navegación entre pantallas |
+| Axios | Solicitudes HTTP a la API |
+| MockAPI | Almacenamiento y gestión de datos de prueba |
+| Git y GitHub | Control de versiones y alojamiento del código |
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+##  Estructura del proyecto
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+RecursosIngenieria/
+├── App.js
+├── package.json
+├── README.md
+└── src/
+    ├── api.js
+    ├── components/
+    ├── context/
+    ├── navigation/
+    ├── screens/
+    └── theme.js
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+> La estructura puede variar según las actualizaciones realizadas durante el desarrollo.
 
-### Other setup steps
+##  Requisitos previos
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Antes de ejecutar el proyecto, instala:
 
-## Learn more
+- Node.js y npm.
+- Expo CLI mediante las herramientas incluidas en Expo.
+- Git.
+- Expo Go para probar la aplicación en un dispositivo compatible, o un navegador si el proyecto tiene habilitada la plataforma web.
 
-To learn more about developing your project with Expo, look at the following resources:
+##  Instalación
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 1. Clonar el repositorio
 
-## Join the community
+```bash
+git clone https://github.com/valemeli1/Desafio-3-de-DPS.git
+```
 
-Join our community of developers creating universal apps.
+### 2. Entrar en la carpeta del proyecto
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+cd Desafio-3-de-DPS
+```
+
+### 3. Instalar las dependencias
+
+```bash
+npm install
+```
+
+### 4. Iniciar la aplicación
+
+```bash
+npx expo start
+```
+
+Sigue las instrucciones que aparecen en la terminal para abrir la aplicación en Expo Go o en una plataforma compatible.
+
+Para iniciar la versión web, si está configurada en el proyecto:
+
+```bash
+npx expo start --web
+```
+
+##  Configuración de la API
+
+La aplicación utiliza MockAPI para administrar los datos de prueba.
+
+Colecciones utilizadas:
+
+- `usuarios`: información de usuarios, credenciales, roles y favoritos.
+- `recursos`: información de los materiales educativos.
+
+La configuración de las solicitudes HTTP se encuentra en `src/api.js`.
+
+**Importante:** configura la URL de tu propia API si es necesario y evita publicar contraseñas reales, tokens o información privada. Las credenciales de prueba no deben utilizarse en un entorno de producción.
+
+##  Roles de usuario
+
+### Estudiante
+
+- Consultar recursos educativos.
+- Buscar materiales.
+- Guardar y administrar favoritos.
+- Calificar recursos.
+- Consultar su perfil.
+
+### Docente
+
+- Consultar recursos educativos.
+- Utilizar las funciones disponibles para su rol.
+- Administrar recursos cuando tenga los permisos correspondientes.
+- Calificar recursos, si la función está habilitada.
+
+##  Diseño de interfaz
+
+La aplicación utiliza una interfaz oscura con tonos morados, tarjetas de recursos, iconografía y componentes reutilizables. El objetivo es mantener una experiencia clara y consistente durante la navegación.
+
+##  Pruebas recomendadas
+
+Antes de entregar el proyecto, verifica:
+
+- El registro y el inicio de sesión.
+- La carga de recursos desde MockAPI.
+- La búsqueda y apertura del detalle de cada recurso.
+- La creación y eliminación de favoritos.
+- El guardado y la visualización de calificaciones.
+- Los permisos correspondientes a cada rol.
+- La respuesta de la aplicación ante errores de conexión.
+
+##  Control de versiones
+
+El proyecto utiliza Git para registrar los cambios durante el desarrollo y GitHub para alojar el repositorio.
+
+Para consultar el historial de commits:
+
+```bash
+git log --oneline
+```
+
