@@ -14,6 +14,7 @@ import Screen from "../components/Screen";
 import ResourceCard from "../components/ResourceCard";
 import { getRecursos } from "../api";
 import { COLORS } from "../theme";
+import { getResourceKey, cleanFavoriteKeys } from "../utils/resourceIdentity";
 
 const FAVORITES_KEY = "favoritos";
 
@@ -30,13 +31,16 @@ export default function FavoriteScreen({ navigation }) {
         AsyncStorage.getItem(FAVORITES_KEY),
       ]);
 
-      const ids = saved ? JSON.parse(saved) : [];
-      const idsNormalizados = Array.isArray(ids) ? ids.map(String) : [];
+      const ids = cleanFavoriteKeys(saved ? JSON.parse(saved) : []);
+      const idsNormalizados = ids;
+      if (JSON.stringify(idsNormalizados) !== JSON.stringify(saved ? JSON.parse(saved) : [])) {
+        await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(idsNormalizados));
+      }
 
       setFavoritosIds(idsNormalizados);
       setRecursosFavoritos(
         (Array.isArray(recursos) ? recursos : []).filter((recurso) =>
-          idsNormalizados.includes(String(recurso.id))
+          idsNormalizados.includes(getResourceKey(recurso))
         )
       );
     } catch (error) {
@@ -59,11 +63,12 @@ export default function FavoriteScreen({ navigation }) {
 
   const quitarFavorito = async (id) => {
     try {
-      const nuevosIds = favoritosIds.filter((favoritoId) => favoritoId !== String(id));
+      const key = getResourceKey(id);
+      const nuevosIds = favoritosIds.filter((favoritoId) => favoritoId !== key);
       await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(nuevosIds));
       setFavoritosIds(nuevosIds);
       setRecursosFavoritos((actuales) =>
-        actuales.filter((recurso) => String(recurso.id) !== String(id))
+        actuales.filter((recurso) => getResourceKey(recurso) !== key)
       );
     } catch (error) {
       console.error("Error actualizando favoritos:", error);
@@ -102,10 +107,10 @@ export default function FavoriteScreen({ navigation }) {
       ) : (
         recursosFavoritos.map((resource) => (
           <ResourceCard
-            key={String(resource.id)}
+            key={getResourceKey(resource)}
             resource={resource}
             favorito={true}
-            onFavorite={() => quitarFavorito(resource.id)}
+            onFavorite={() => quitarFavorito(resource)}
             onPress={() => navigation.navigate("DetalleRecurso", { resource })}
           />
         ))
