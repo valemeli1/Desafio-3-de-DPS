@@ -18,31 +18,52 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Recuperar la sesión guardada al abrir la aplicación.
   useEffect(() => {
     loadSession();
   }, []);
 
   const loadSession = async () => {
     try {
-      const savedUser = await AsyncStorage.getItem("usuario_actual");
+      const savedUser = await AsyncStorage.getItem(
+        "usuario_actual"
+      );
 
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
+        const usuarioGuardado = JSON.parse(savedUser);
+
+        setUser(usuarioGuardado);
+
+        console.log("Sesión recuperada:", {
+          campos: Object.keys(usuarioGuardado || {}),
+          id: usuarioGuardado?.id,
+          usuarioId: usuarioGuardado?.usuarioId,
+          tieneCorreo: Boolean(usuarioGuardado?.correo),
+        });
+      } else {
+        setUser(null);
       }
     } catch (error) {
-      console.log("Error cargando sesión:", error);
+      console.error(
+        "Error cargando sesión:",
+        error.message
+      );
+
+      setUser(null);
     } finally {
       setLoading(false);
     }
   };
 
+  // Iniciar sesión.
   const login = async (correo, password) => {
     try {
       const usuarios = await getUsuarios();
 
       const usuarioEncontrado = usuarios.find(
         (item) =>
-          item.correo?.toLowerCase() === correo.trim().toLowerCase() &&
+          item.correo?.trim().toLowerCase() ===
+            correo.trim().toLowerCase() &&
           item.password === password
       );
 
@@ -53,6 +74,15 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
+      // Diagnóstico sin imprimir correo ni contraseña.
+      console.log("Usuario encontrado al iniciar sesión:", {
+        campos: Object.keys(usuarioEncontrado),
+        id: usuarioEncontrado.id,
+        usuarioId: usuarioEncontrado.usuarioId,
+        tieneCorreo: Boolean(usuarioEncontrado.correo),
+      });
+
+      // Guardar el usuario completo de MockAPI.
       await AsyncStorage.setItem(
         "usuario_actual",
         JSON.stringify(usuarioEncontrado)
@@ -65,7 +95,10 @@ export const AuthProvider = ({ children }) => {
         user: usuarioEncontrado,
       };
     } catch (error) {
-      console.log(error);
+      console.error(
+        "Error al iniciar sesión:",
+        error.message
+      );
 
       return {
         success: false,
@@ -75,13 +108,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Registrar usuario.
   const register = async (data) => {
     try {
       const usuarios = await getUsuarios();
 
+      const correoNormalizado = data.correo
+        .trim()
+        .toLowerCase();
+
       const existe = usuarios.some(
         (item) =>
-          item.correo?.toLowerCase() === data.correo.trim().toLowerCase()
+          item.correo?.trim().toLowerCase() ===
+          correoNormalizado
       );
 
       if (existe) {
@@ -93,10 +132,16 @@ export const AuthProvider = ({ children }) => {
 
       const nuevoUsuario = await createUsuario({
         nombre: data.nombre,
-        correo: data.correo.trim().toLowerCase(),
+        correo: correoNormalizado,
         password: data.password,
         rol: data.rol,
         favoritos: [],
+      });
+
+      console.log("Usuario registrado:", {
+        campos: Object.keys(nuevoUsuario || {}),
+        id: nuevoUsuario?.id,
+        usuarioId: nuevoUsuario?.usuarioId,
       });
 
       await AsyncStorage.setItem(
@@ -111,7 +156,10 @@ export const AuthProvider = ({ children }) => {
         user: nuevoUsuario,
       };
     } catch (error) {
-      console.log(error);
+      console.error(
+        "Error al registrar usuario:",
+        error.response?.data || error.message
+      );
 
       return {
         success: false,
@@ -120,9 +168,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Cerrar sesión.
   const logout = async () => {
-    await AsyncStorage.removeItem("usuario_actual");
-    setUser(null);
+    try {
+      await AsyncStorage.removeItem("usuario_actual");
+      setUser(null);
+    } catch (error) {
+      console.error(
+        "Error al cerrar sesión:",
+        error.message
+      );
+    }
   };
 
   return (

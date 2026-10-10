@@ -160,8 +160,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: COLORS.textSecondary,
   },
-<<<<<<< HEAD
+
 });
-=======
-});
->>>>>>> b57e0d5 (fix: fixing ids and CRUD)
+

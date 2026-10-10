@@ -1,202 +1,266 @@
-import React, {
-  useEffect,
-  useState,
-} from "react";
+
+import React, { useEffect, useState } from "react";
 
 import {
   Alert,
   Linking,
+  Platform,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 
-import {
-  Button,
-  Card,
-  Divider,
-} from "react-native-paper";
+import { Button, Card, Divider } from "react-native-paper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import {
-  getCalificaciones,
-  createCalificacion,
-  updateRecurso,
-  getRecursos,
-} from "../api";
 
 import Stars from "../components/Stars";
 import Screen from "../components/Screen";
-
 import { COLORS } from "../theme";
 import { useAuth } from "../context/AuthContext";
 
-export default function ResourceDetailScreen({
-  route,
-}) {
-  const { resource: initialResource } =
-    route.params;
+import {
+  getRecursos,
+  getUsuarios,
+  updateRecurso,
+} from "../api";
 
+export default function ResourceDetailScreen({ route }) {
+  const { resource: initialResource } = route.params;
   const { user } = useAuth();
 
-  const [resource, setResource] =
-    useState(initialResource);
-
+  const [resource, setResource] = useState(initialResource);
   const [rating, setRating] = useState(0);
-
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadUserRating();
-  }, []);
+    cargarCalificacionPersonal();
+  }, [resource.id, user?.id]);
 
-  const loadUserRating = async () => {
+  const mostrarMensaje = (titulo, mensaje) => {
+    if (Platform.OS === "web") {
+      window.alert(`${titulo}\n\n${mensaje}`);
+    } else {
+      Alert.alert(titulo, mensaje);
+    }
+  };
+
+  const cargarCalificacionPersonal = async () => {
     try {
-      const ratings =
-        await getCalificaciones();
+      let usuarioActual = user;
 
-      const existing = ratings.find(
-        (item) =>
-          String(item.recursoId) ===
-            String(resource.id) &&
-          String(item.usuarioId) ===
-            String(user.id)
+      if (!usuarioActual?.id) {
+        const sesion = await AsyncStorage.getItem("usuario_actual");
+        if (sesion) {
+          usuarioActual = JSON.parse(sesion);
+        }
+      }
+
+      const recursos = await getRecursos();
+
+      const actual = recursos.find(
+        (item) => String(item.id) === String(initialResource.id)
       );
 
-      if (existing) {
-        setRating(Number(existing.rating));
-      }
+      if (!actual) return;
+
+      const calificaciones = Array.isArray(actual.calificaciones)
+        ? actual.calificaciones
+        : [];
+
+      const propia = calificaciones.find(
+        (item) =>
+          String(item.usuarioId) === String(usuarioActual?.id)
+      );
+
+      setResource(actual);
+      setRating(propia ? Number(propia.rating) : 0);
     } catch (error) {
-      console.log(error);
+      console.error(
+        "Error cargando calificación:",
+        error.response?.status,
+        error.response?.data || error.message
+      );
     }
   };
 
   const handleRating = async (value) => {
-    if (saving) return;
+  if (saving) return;
 
-    try {
-      setSaving(true);
+  setSaving(true);
 
-      const ratings =
-        await getCalificaciones();
+  const ratingAnterior = rating;
 
-      const existing = ratings.find(
-        (item) =>
-          String(item.recursoId) ===
-            String(resource.id) &&
-          String(item.usuarioId) ===
-            String(user.id)
+  try {
+    // 1. Recuperar la sesión actual.
+   
+let usuario = user;
+
+// Intentar recuperar la sesión guardada.
+if (!usuario?.id && !usuario?.usuarioId && !usuario?._id) {
+  const sesionGuardada = await AsyncStorage.getItem(
+    "usuario_actual"
+  );
+
+  if (sesionGuardada) {
+    usuario = JSON.parse(sesionGuardada);
+  }
+}
+
+// Si la sesión no tiene ID, buscar al usuario por su correo
+// en la colección real de usuarios de MockAPI.
+let usuarioId =
+  usuario?.id ??
+  usuario?.usuarioId ??
+  usuario?._id;
+
+const correo =
+  usuario?.correo ??
+  usuario?.email ??
+  usuario?.usuario?.correo;
+
+if (
+  (usuarioId === undefined ||
+    usuarioId === null ||
+    String(usuarioId).trim() === "") &&
+  correo
+) {
+  const usuarios = await getUsuarios();
+
+  const usuarioEncontrado = usuarios.find(
+    (item) =>
+      item.correo?.trim().toLowerCase() ===
+      String(correo).trim().toLowerCase()
+  );
+
+  if (usuarioEncontrado) {
+    usuarioId = usuarioEncontrado.id;
+  }
+}
+
+if (
+  usuarioId === undefined ||
+  usuarioId === null ||
+  String(usuarioId).trim() === ""
+) {
+  console.log("Diagnóstico de sesión:", {
+  userDelContexto: user
+    ? Object.keys(user)
+    : null,
+  usuarioRecuperado: usuario
+    ? Object.keys(usuario)
+    : null,
+  id: usuario?.id,
+  usuarioId: usuario?.usuarioId,
+  _id: usuario?._id,
+  tieneCorreo: Boolean(usuario?.correo),
+  tieneEmail: Boolean(usuario?.email),
+});
+  throw new Error(
+    "No se pudo identificar tu usuario. Revisa la consola para comprobar los datos de sesión."
+  );
+}
+
+const usuarioIdTexto = String(usuarioId);
+    // 3. Obtener el recurso actualizado desde MockAPI.
+    const recursos = await getRecursos();
+
+    const recursoActual = recursos.find(
+      (recurso) => String(recurso.id) === String(resource.id)
+    );
+
+    if (!recursoActual) {
+      throw new Error(
+        "No se encontró el recurso que deseas calificar."
       );
-
-      if (existing) {
-        Alert.alert(
-          "Ya calificaste",
-          "Ya has calificado este recurso."
-        );
-
-        setRating(Number(existing.rating));
-
-        return;
-      }
-
-      await createCalificacion({
-        recursoId: String(resource.id),
-        usuarioId: String(user.id),
-        rating: value,
-        fecha: new Date().toISOString(),
-      });
-
-      const updatedRatings =
-        await getCalificaciones();
-
-      const resourceRatings =
-        updatedRatings.filter(
-          (item) =>
-            String(item.recursoId) ===
-            String(resource.id)
-        );
-
-      const total = resourceRatings.reduce(
-        (sum, item) =>
-          sum + Number(item.rating || 0),
-        0
-      );
-
-      const average =
-        resourceRatings.length > 0
-          ? total / resourceRatings.length
-          : 0;
-
-      const allResources =
-        await getRecursos();
-
-      const currentResource =
-        allResources.find(
-          (item) =>
-            String(item.id) ===
-            String(resource.id)
-        );
-
-      await updateRecurso(
-        resource.id,
-        {
-          ...currentResource,
-          promedio: Number(
-            average.toFixed(1)
-          ),
-        }
-      );
-
-      setRating(value);
-
-      setResource((current) => ({
-        ...current,
-        promedio: Number(
-          average.toFixed(1)
-        ),
-      }));
-
-      Alert.alert(
-        "Calificación guardada",
-        "Tu calificación se guardó correctamente."
-      );
-    } catch (error) {
-      console.log(error);
-
-      Alert.alert(
-        "Error",
-        "No se pudo guardar la calificación."
-      );
-    } finally {
-      setSaving(false);
     }
-  };
 
+    const calificaciones = Array.isArray(
+      recursoActual.calificaciones
+    )
+      ? [...recursoActual.calificaciones]
+      : [];
+
+    // 4. Actualizar la calificación del usuario
+    // o agregarla si todavía no existe.
+    const indice = calificaciones.findIndex(
+      (calificacion) =>
+        String(calificacion.usuarioId) === usuarioIdTexto
+    );
+
+    const nuevaCalificacion = {
+      usuarioId: usuarioIdTexto,
+      rating: Number(value),
+      fecha: new Date().toISOString(),
+    };
+
+    if (indice >= 0) {
+      calificaciones[indice] = nuevaCalificacion;
+    } else {
+      calificaciones.push(nuevaCalificacion);
+    }
+
+    // 5. Guardar los cambios en MockAPI.
+    const recursoActualizado = {
+      ...recursoActual,
+      calificaciones,
+      promedio:
+        calificaciones.reduce(
+          (total, calificacion) =>
+            total + Number(calificacion.rating || 0),
+          0
+        ) / calificaciones.length,
+    };
+
+    setRating(Number(value));
+
+    await updateRecurso(
+      recursoActual.id,
+      recursoActualizado
+    );
+
+    setResource(recursoActualizado);
+
+    mostrarMensaje("¡Éxito!", "Tu calificación se guardó correctamente.");
+  } catch (error) {
+    console.error(
+      "Error al calificar:",
+      error.response?.data || error.message || error
+    );
+
+    setRating(ratingAnterior);
+
+    mostrarMensaje(
+      "No se pudo calificar",
+      error.message || "Ocurrió un error al guardar tu calificación."
+    );
+  } finally {
+    setSaving(false);
+  }
+};
   const openLink = async () => {
+    if (!resource.enlace) {
+      mostrarMensaje("Sin enlace", "Este recurso no tiene un enlace.");
+      return;
+    }
+
     try {
-      const supported =
-        await Linking.canOpenURL(
-          resource.enlace
-        );
-
-      if (!supported) {
-        Alert.alert(
-          "Enlace inválido",
-          "El enlace no puede abrirse."
-        );
-
-        return;
-      }
-
-      await Linking.openURL(
-        resource.enlace
-      );
+      await Linking.openURL(resource.enlace);
     } catch (error) {
-      Alert.alert(
-        "Error",
-        "No se pudo abrir el enlace."
-      );
+      mostrarMensaje("Error", "No se pudo abrir el enlace.");
     }
   };
+
+  const calificaciones = Array.isArray(resource.calificaciones)
+    ? resource.calificaciones
+    : [];
+
+  const promedio = calificaciones.length > 0
+    ? calificaciones.reduce(
+        (total, item) => total + Number(item.rating || 0),
+        0
+      ) / calificaciones.length
+    : Number(resource.promedio || 0);
 
   return (
     <Screen>
@@ -211,44 +275,39 @@ export default function ResourceDetailScreen({
 
         <Card.Content>
           <Text style={styles.type}>
-            {resource.tipo}
+            {resource.tipo || "Recurso educativo"}
           </Text>
 
           <Text style={styles.title}>
-            {resource.titulo}
+            {resource.titulo || "Sin título"}
           </Text>
 
           <Text style={styles.description}>
-            {resource.descripcion}
+            {resource.descripcion || "Sin descripción."}
           </Text>
 
-          <Divider
-            style={styles.divider}
-          />
+          <Divider style={styles.divider} />
 
           <Text style={styles.ratingTitle}>
             Calificación promedio
           </Text>
 
           <View style={styles.ratingRow}>
-            <Stars
-              value={Number(
-                resource.promedio || 0
-              )}
-              size={25}
-            />
+            <Stars value={promedio} size={25} />
 
             <Text style={styles.average}>
-              {Number(
-                resource.promedio || 0
-              ).toFixed(1)}
-              /5
+              {promedio.toFixed(1)}/5
             </Text>
           </View>
 
-          <Divider
-            style={styles.divider}
-          />
+          <Text style={styles.total}>
+            {calificaciones.length}{" "}
+            {calificaciones.length === 1
+              ? "calificación"
+              : "calificaciones"}
+          </Text>
+
+          <Divider style={styles.divider} />
 
           <Text style={styles.ratingTitle}>
             Tu calificación
@@ -258,7 +317,14 @@ export default function ResourceDetailScreen({
             value={rating}
             onChange={handleRating}
             size={32}
+            disabled={saving}
           />
+
+          {saving && (
+            <Text style={styles.saving}>
+              Guardando calificación...
+            </Text>
+          )}
 
           <Button
             mode="contained"
@@ -278,47 +344,48 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
   },
-
   type: {
     color: COLORS.primary,
     fontWeight: "700",
     marginTop: 15,
   },
-
   title: {
     fontSize: 25,
     fontWeight: "800",
     color: COLORS.text,
     marginTop: 5,
   },
-
   description: {
     color: COLORS.textSecondary,
     lineHeight: 22,
     marginTop: 12,
   },
-
   divider: {
     marginVertical: 18,
   },
-
   ratingTitle: {
     fontWeight: "700",
     color: COLORS.text,
     marginBottom: 8,
   },
-
   ratingRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-
   average: {
     marginLeft: 10,
     fontWeight: "700",
     color: COLORS.text,
   },
-
+  total: {
+    marginTop: 6,
+    color: COLORS.textSecondary,
+    fontSize: 12,
+  },
+  saving: {
+    color: COLORS.primary,
+    marginTop: 8,
+  },
   button: {
     marginTop: 20,
     marginBottom: 5,

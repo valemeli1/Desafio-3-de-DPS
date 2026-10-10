@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-
->>>>>>> b57e0d5 (fix: fixing ids and CRUD)
 import React, { useCallback, useState } from "react";
 import {
   Alert,
@@ -17,14 +13,7 @@ import { deleteRecurso, getRecursos } from "../api";
 import Screen from "../components/Screen";
 import ResourceCard from "../components/ResourceCard";
 import { COLORS } from "../theme";
-<<<<<<< HEAD
 import { hasApiResourceId } from "../utils/resourceIdentity";
-=======
-import {
-  getResourceKey,
-  hasApiResourceId,
-} from "../utils/resourceIdentity";
->>>>>>> b57e0d5 (fix: fixing ids and CRUD)
 
 export default function ManageResourcesScreen({ navigation }) {
   const [recursos, setRecursos] = useState([]);
@@ -33,7 +22,7 @@ export default function ManageResourcesScreen({ navigation }) {
 
   const mostrarMensaje = (titulo, mensaje) => {
     if (Platform.OS === "web") {
-      window.alert(`${titulo}: ${mensaje}`);
+      window.alert(`${titulo}\n\n${mensaje}`);
     } else {
       Alert.alert(titulo, mensaje);
     }
@@ -42,43 +31,32 @@ export default function ManageResourcesScreen({ navigation }) {
   const cargar = useCallback(async () => {
     try {
       setLoading(true);
+
       const data = await getRecursos();
-<<<<<<< HEAD
-      setRecursos(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("ERROR CARGANDO RECURSOS:", error);
-      mostrarMensaje("Error", "No se pudieron cargar los recursos.");
-=======
 
-      console.log(
-        "RECURSOS RECIBIDOS DE MOCKAPI:",
-        JSON.stringify(data, null, 2)
-      );
+      if (!Array.isArray(data)) {
+        throw new Error("La API no devolvió una lista de recursos.");
+      }
 
-      setRecursos(Array.isArray(data) ? data : []);
+      setRecursos(data);
+      console.log("Recursos cargados:", data.length);
     } catch (error) {
       console.error(
-        "ERROR CARGANDO RECURSOS:",
+        "ERROR AL CARGAR RECURSOS:",
+        error.response?.status,
         error.response?.data || error.message
       );
 
       mostrarMensaje(
-        "Error",
-        "No se pudieron cargar los recursos."
+        "Error al cargar",
+        error.response?.status === 404
+          ? "MockAPI respondió 404. Verifica que exista la colección recursos y que la URL de la API sea correcta."
+          : "No se pudieron cargar los recursos. Revisa tu conexión."
       );
->>>>>>> b57e0d5 (fix: fixing ids and CRUD)
     } finally {
       setLoading(false);
     }
   }, []);
-
-  const mostrarMensaje = (titulo, mensaje) => {
-    if (Platform.OS === "web") {
-      window.alert(`${titulo}: ${mensaje}`);
-    } else {
-      Alert.alert(titulo, mensaje);
-    }
-  };
 
   useFocusEffect(
     useCallback(() => {
@@ -86,61 +64,27 @@ export default function ManageResourcesScreen({ navigation }) {
     }, [cargar])
   );
 
-  const ejecutarEliminacion = async (resource) => {
-<<<<<<< HEAD
-    const id = resource?.id;
+  const handleAdd = () => {
+    navigation.navigate("FormularioRecurso");
+  };
+
+  const handleEdit = (resource) => {
     if (!hasApiResourceId(resource)) {
-      mostrarMensaje("No se puede eliminar", "Este registro no tiene el campo id que exige MockAPI. Debes eliminarlo desde el panel de MockAPI y volver a crearlo para que se genere un ID.");
-      return;
-    }
-
-    try {
-      setDeletingId(String(id));
-      await deleteRecurso(id);
-
-      setRecursos((actuales) =>
-        actuales.filter((item) => String(item.id) !== String(id))
-      );
-
-      mostrarMensaje("Éxito", "El recurso se eliminó correctamente.");
-    } catch (error) {
-      console.error(
-        "ERROR DELETE:",
-        error.response?.status,
-        error.response?.data || error.message
-      );
       mostrarMensaje(
-        "Error",
-        error.response?.status
-          ? `La API respondió con el estado ${error.response.status}.`
-          : "No se pudo conectar con MockAPI. Revisa tu conexión."
+        "No se puede editar",
+        "Este recurso no tiene un ID válido de MockAPI."
       );
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const handleDelete = (resource) => {
-    const confirmar = async () => ejecutarEliminacion(resource);
-    const mensaje = `¿Seguro que deseas eliminar "${resource?.titulo || "este recurso"}"?`;
-
-    if (Platform.OS === "web") {
-      if (window.confirm(mensaje)) {
-        confirmar();
-      }
       return;
     }
 
-    Alert.alert("Eliminar recurso", mensaje, [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Eliminar", style: "destructive", onPress: confirmar },
-    ]);
+    navigation.navigate("FormularioRecurso", { resource });
   };
-=======
+
+  const ejecutarEliminacion = async (resource) => {
     if (!hasApiResourceId(resource)) {
       mostrarMensaje(
         "No se puede eliminar",
-        "Este recurso no tiene un ID válido de MockAPI. Revisa el registro en MockAPI antes de intentar eliminarlo."
+        "Este recurso no tiene un ID válido de MockAPI."
       );
       return;
     }
@@ -153,15 +97,10 @@ export default function ManageResourcesScreen({ navigation }) {
       await deleteRecurso(id);
 
       setRecursos((actuales) =>
-        actuales.filter(
-          (item) => String(item.id) !== id
-        )
+        actuales.filter((item) => String(item.id) !== id)
       );
 
-      mostrarMensaje(
-        "Éxito",
-        "El recurso se eliminó correctamente."
-      );
+      mostrarMensaje("Éxito", "Recurso eliminado correctamente.");
     } catch (error) {
       console.error(
         "ERROR AL ELIMINAR:",
@@ -171,9 +110,9 @@ export default function ManageResourcesScreen({ navigation }) {
 
       mostrarMensaje(
         "Error al eliminar",
-        error.response?.status
-          ? `MockAPI respondió con el estado ${error.response.status}. Verifica el ID del recurso.`
-          : "No se pudo conectar con MockAPI. Revisa tu conexión."
+        error.response?.status === 404
+          ? "MockAPI no encontró ese recurso. Comprueba su ID en la colección recursos."
+          : "No se pudo eliminar el recurso."
       );
     } finally {
       setDeletingId(null);
@@ -181,8 +120,7 @@ export default function ManageResourcesScreen({ navigation }) {
   };
 
   const handleDelete = (resource) => {
-    const titulo = resource?.titulo || "este recurso";
-    const mensaje = `¿Seguro que deseas eliminar "${titulo}"?`;
+    const mensaje = `¿Deseas eliminar "${resource.titulo || "este recurso"}"?`;
 
     if (Platform.OS === "web") {
       if (window.confirm(mensaje)) {
@@ -192,10 +130,7 @@ export default function ManageResourcesScreen({ navigation }) {
     }
 
     Alert.alert("Eliminar recurso", mensaje, [
-      {
-        text: "Cancelar",
-        style: "cancel",
-      },
+      { text: "Cancelar", style: "cancel" },
       {
         text: "Eliminar",
         style: "destructive",
@@ -204,36 +139,11 @@ export default function ManageResourcesScreen({ navigation }) {
     ]);
   };
 
-  const handleEdit = (resource) => {
-    if (!hasApiResourceId(resource)) {
-      mostrarMensaje(
-        "No se puede editar",
-        "Este recurso no tiene un ID válido de MockAPI. Verifica el registro antes de editarlo."
-      );
-      return;
-    }
-
-    navigation.navigate("FormularioRecurso", {
-      resource,
-    });
-  };
->>>>>>> b57e0d5 (fix: fixing ids and CRUD)
-
   if (loading) {
     return (
       <View style={styles.loading}>
-<<<<<<< HEAD
         <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Cargando recursos...</Text>
-=======
-        <ActivityIndicator
-          size="large"
-          color={COLORS.primary}
-        />
-        <Text style={styles.loadingText}>
-          Cargando recursos...
-        </Text>
->>>>>>> b57e0d5 (fix: fixing ids and CRUD)
       </View>
     );
   }
@@ -242,19 +152,15 @@ export default function ManageResourcesScreen({ navigation }) {
     <Screen>
       <View style={styles.header}>
         <Text style={styles.title}>Gestionar recursos</Text>
-        <Text style={styles.subtitle}>Crear, editar y eliminar recursos.</Text>
+        <Text style={styles.subtitle}>
+          Crea, consulta, edita y elimina recursos educativos.
+        </Text>
       </View>
 
       <Button
         mode="contained"
         icon="plus"
-<<<<<<< HEAD
-        onPress={() => navigation.navigate("FormularioRecurso")}
-=======
-        onPress={() =>
-          navigation.navigate("FormularioRecurso")
-        }
->>>>>>> b57e0d5 (fix: fixing ids and CRUD)
+        onPress={handleAdd}
         style={styles.addButton}
       >
         Agregar recurso
@@ -263,69 +169,24 @@ export default function ManageResourcesScreen({ navigation }) {
       {recursos.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyTitle}>No hay recursos</Text>
-          <Text style={styles.emptyText}>Actualmente no existen recursos registrados.</Text>
+          <Text style={styles.emptyText}>
+            No se encontraron recursos en la colección.
+          </Text>
         </View>
       ) : (
-<<<<<<< HEAD
-        recursos.map((resource) => (
-          <View key={String(resource.id)} style={styles.resourceContainer}>
-            <ResourceCard resource={resource} />
-
-            <View style={styles.actions}>
-              <Button
-                mode="outlined"
-                icon="pencil"
-                onPress={() => {
-                  if (!hasApiResourceId(resource)) {
-                    mostrarMensaje(
-                      "No se puede editar",
-                      "Este registro no tiene el campo id que exige MockAPI. Debes eliminarlo desde el panel de MockAPI y volver a crearlo para que se genere un ID."
-                    );
-                    return;
-                  }
-                  navigation.navigate("FormularioRecurso", { resource });
-                }}
-                disabled={deletingId !== null}
-              >
-                Editar
-              </Button>
-
-              <Button
-                mode="outlined"
-                icon="delete"
-                textColor={COLORS.danger}
-                loading={deletingId === String(resource.id)}
-                disabled={deletingId !== null}
-                onPress={() => handleDelete(resource)}
-              >
-                {deletingId === String(resource.id) ? "Eliminando..." : "Eliminar"}
-              </Button>
-=======
         recursos.map((resource, index) => {
-          const tieneId = hasApiResourceId(resource);
-
-          // Los registros con ID usan su ID real.
-          // Los registros antiguos sin ID reciben una clave visual
-          // alternativa para evitar la clave "undefined".
-          const resourceKey = tieneId
-            ? `id-${String(resource.id)}`
-            : `sin-id-${getResourceKey(resource) || "recurso"}-${index}`;
-
-          const id = tieneId
+          const idValido = hasApiResourceId(resource);
+          const key = idValido
             ? String(resource.id)
-            : null;
+            : `recurso-sin-id-${index}`;
 
           return (
-            <View
-              key={resourceKey}
-              style={styles.resourceContainer}
-            >
+            <View key={key} style={styles.resourceContainer}>
               <ResourceCard resource={resource} />
 
-              {!tieneId && (
+              {!idValido && (
                 <Text style={styles.warning}>
-                  Este recurso no tiene un ID válido.
-                  No se puede editar ni eliminar desde la aplicación.
+                  Este registro no tiene un ID válido y no se puede editar ni eliminar.
                 </Text>
               )}
 
@@ -333,10 +194,8 @@ export default function ManageResourcesScreen({ navigation }) {
                 <Button
                   mode="outlined"
                   icon="pencil"
+                  disabled={!idValido || deletingId !== null}
                   onPress={() => handleEdit(resource)}
-                  disabled={
-                    deletingId !== null || !tieneId
-                  }
                 >
                   Editar
                 </Button>
@@ -345,20 +204,13 @@ export default function ManageResourcesScreen({ navigation }) {
                   mode="outlined"
                   icon="delete"
                   textColor={COLORS.danger}
-                  loading={
-                    id !== null && deletingId === id
-                  }
-                  disabled={
-                    deletingId !== null || !tieneId
-                  }
+                  disabled={!idValido || deletingId !== null}
+                  loading={deletingId === String(resource.id)}
                   onPress={() => handleDelete(resource)}
                 >
-                  {id !== null && deletingId === id
-                    ? "Eliminando..."
-                    : "Eliminar"}
+                  Eliminar
                 </Button>
               </View>
->>>>>>> b57e0d5 (fix: fixing ids and CRUD)
             </View>
           );
         })
@@ -368,13 +220,6 @@ export default function ManageResourcesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
-  header: { marginBottom: 10 },
-  title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
-  subtitle: { color: COLORS.textSecondary, marginTop: 4 },
-  addButton: { marginVertical: 15 },
-  resourceContainer: { marginBottom: 5 },
-=======
   header: {
     marginBottom: 10,
   },
@@ -391,26 +236,18 @@ const styles = StyleSheet.create({
     marginVertical: 15,
   },
   resourceContainer: {
-    marginBottom: 5,
+    marginBottom: 8,
   },
->>>>>>> b57e0d5 (fix: fixing ids and CRUD)
   actions: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: -8,
-    marginBottom: 20,
+    justifyContent: "space-around",
+    marginBottom: 18,
   },
-<<<<<<< HEAD
-  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 10, color: COLORS.textSecondary },
-  empty: { padding: 30, alignItems: "center" },
-  emptyTitle: { fontSize: 20, fontWeight: "700", color: COLORS.text },
-  emptyText: { marginTop: 8, textAlign: "center", color: COLORS.textSecondary },
-=======
   loading: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: COLORS.background,
   },
   loadingText: {
     marginTop: 10,
@@ -432,8 +269,7 @@ const styles = StyleSheet.create({
   },
   warning: {
     color: COLORS.danger,
-    marginVertical: 8,
-    fontSize: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
->>>>>>> b57e0d5 (fix: fixing ids and CRUD)
 });

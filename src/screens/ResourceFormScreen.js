@@ -86,17 +86,17 @@ export default function ResourceFormScreen({
     try {
       setSaving(true);
 
-      const data = {
-        titulo: titulo.trim(),
-        descripcion: descripcion.trim(),
-        tipo: tipo.trim(),
-        enlace: enlace.trim(),
-        imagen: imagen.trim(),
-        promedio: Number(
-          resource?.promedio || 0
-        ),
-      };
-
+     const data = {
+  titulo: titulo.trim(),
+  descripcion: descripcion.trim(),
+  tipo: tipo.trim(),
+  enlace: enlace.trim(),
+  imagen: imagen.trim(),
+  promedio: Number(resource?.promedio || 0),
+  calificaciones: Array.isArray(resource?.calificaciones)
+    ? resource.calificaciones
+    : [],
+};
       if (editing) {
         await updateRecurso(
           resource.id,
