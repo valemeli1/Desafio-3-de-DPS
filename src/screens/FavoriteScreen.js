@@ -1,113 +1,158 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import {
-  View,
-  Text,
+  Alert,
+  Platform,
   StyleSheet,
-  FlatList,
+  Text,
+  View,
 } from "react-native";
+import { ActivityIndicator } from "react-native-paper";
+import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { Ionicons } from "@expo/vector-icons";
+import Screen from "../components/Screen";
+import ResourceCard from "../components/ResourceCard";
+import { getRecursos } from "../api";
+import { COLORS } from "../theme";
 
-export default function FavoritesScreen() {
-  const favorites = [];
+const FAVORITES_KEY = "favoritos";
+
+export default function FavoriteScreen({ navigation }) {
+  const [recursosFavoritos, setRecursosFavoritos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [favoritosIds, setFavoritosIds] = useState([]);
+
+  const cargarFavoritos = async () => {
+    try {
+      setLoading(true);
+      const [recursos, saved] = await Promise.all([
+        getRecursos(),
+        AsyncStorage.getItem(FAVORITES_KEY),
+      ]);
+
+      const ids = saved ? JSON.parse(saved) : [];
+      const idsNormalizados = Array.isArray(ids) ? ids.map(String) : [];
+
+      setFavoritosIds(idsNormalizados);
+      setRecursosFavoritos(
+        (Array.isArray(recursos) ? recursos : []).filter((recurso) =>
+          idsNormalizados.includes(String(recurso.id))
+        )
+      );
+    } catch (error) {
+      console.error("Error cargando favoritos:", error);
+      if (Platform.OS === "web") {
+        window.alert("No se pudieron cargar tus favoritos.");
+      } else {
+        Alert.alert("Error", "No se pudieron cargar tus favoritos.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      cargarFavoritos();
+    }, [])
+  );
+
+  const quitarFavorito = async (id) => {
+    try {
+      const nuevosIds = favoritosIds.filter((favoritoId) => favoritoId !== String(id));
+      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(nuevosIds));
+      setFavoritosIds(nuevosIds);
+      setRecursosFavoritos((actuales) =>
+        actuales.filter((recurso) => String(recurso.id) !== String(id))
+      );
+    } catch (error) {
+      console.error("Error actualizando favoritos:", error);
+      if (Platform.OS === "web") {
+        window.alert("No se pudo actualizar la lista de favoritos.");
+      } else {
+        Alert.alert("Error", "No se pudo actualizar la lista de favoritos.");
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.emptyText}>Cargando favoritos...</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
+    <Screen>
       <View style={styles.header}>
         <Text style={styles.title}>Mis favoritos</Text>
-        <Ionicons
-          name="heart"
-          size={28}
-          color="#2563EB"
-        />
+        <Text style={styles.count}>{recursosFavoritos.length} guardado(s)</Text>
       </View>
 
-      {favorites.length === 0 ? (
+      {recursosFavoritos.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons
-            name="heart-outline"
-            size={70}
-            color="#94A3B8"
-          />
-
-          <Text style={styles.emptyTitle}>
-            No tienes favoritos
-          </Text>
-
+          <Text style={styles.heart}>♡</Text>
+          <Text style={styles.emptyTitle}>No tienes favoritos</Text>
           <Text style={styles.emptyText}>
-            Los recursos que marques como favoritos
-            aparecerán aquí.
+            Pulsa el corazón de un recurso en Inicio o Buscar y aparecerá aquí.
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={favorites}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>
-                {item.title}
-              </Text>
-            </View>
-          )}
-        />
+        recursosFavoritos.map((resource) => (
+          <ResourceCard
+            key={String(resource.id)}
+            resource={resource}
+            favorito={true}
+            onFavorite={() => quitarFavorito(resource.id)}
+            onPress={() => navigation.navigate("DetalleRecurso", { resource })}
+          />
+        ))
       )}
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F3F6FA",
-    padding: 20,
-  },
-
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 25,
+    marginBottom: 14,
   },
-
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#1E293B",
+    fontSize: 26,
+    fontWeight: "800",
+    color: COLORS.text,
   },
-
+  count: {
+    marginTop: 5,
+    color: COLORS.textSecondary,
+  },
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 30,
+    paddingHorizontal: 28,
   },
-
+  heart: {
+    fontSize: 66,
+    color: COLORS.primary,
+  },
   emptyTitle: {
-    marginTop: 18,
+    marginTop: 14,
     fontSize: 21,
     fontWeight: "700",
-    color: "#334155",
+    color: COLORS.text,
   },
-
   emptyText: {
     marginTop: 8,
     textAlign: "center",
-    fontSize: 15,
     lineHeight: 22,
-    color: "#64748B",
-  },
-
-  card: {
-    backgroundColor: "#FFFFFF",
-    padding: 18,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#1E293B",
+    color: COLORS.textSecondary,
   },
 });
