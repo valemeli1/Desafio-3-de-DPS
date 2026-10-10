@@ -69,25 +69,22 @@ export default function HomeScreen({
   );
 
   const toggleFavorite = async (id) => {
-    let updated;
+    try {
+      // Leer el último valor evita trabajar con una lista desactualizada.
+      const saved = await AsyncStorage.getItem("favoritos");
+      const actuales = saved ? JSON.parse(saved) : [];
+      const ids = Array.isArray(actuales) ? actuales.map(String) : [];
+      const idTexto = String(id);
+      const updated = ids.includes(idTexto)
+        ? ids.filter((item) => item !== idTexto)
+        : [...ids, idTexto];
 
-    if (favoritos.includes(String(id))) {
-      updated = favoritos.filter(
-        (item) => item !== String(id)
-      );
-    } else {
-      updated = [
-        ...favoritos,
-        String(id),
-      ];
+      await AsyncStorage.setItem("favoritos", JSON.stringify(updated));
+      setFavoritos(updated);
+    } catch (error) {
+      console.error("Error guardando favorito:", error);
+      Alert.alert("Error", "No se pudo guardar el favorito.");
     }
-
-    setFavoritos(updated);
-
-    await AsyncStorage.setItem(
-      "favoritos",
-      JSON.stringify(updated)
-    );
   };
 
   if (loading) {
